@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/abbot/go-http-auth"
 	"golang.org/x/net/webdav"
@@ -38,6 +39,8 @@ func main() {
 		FileSystem: fs,
 		LockSystem: webdav.NewMemLS(),
 		Logger: func(r *http.Request, err error) {
+			t := time.Now()
+			tStamp := fmt.Sprintf("%d.%9.9d", t.Unix(), t.Nanosecond())
 			switch r.Method {
 			case "COPY", "MOVE":
 				dst := ""
@@ -45,9 +48,9 @@ func main() {
 					dst = u.Path
 				}
 				o := r.Header.Get("Overwrite")
-				log.Printf("%-20s%-20s%-10s%-30s%-30so=%-2s%v", r.Header.Get("Date"), r.RemoteAddr, r.Method, r.URL.Path, dst, o, err)
+				log.Printf("%-21s%-25s%-10s%-30s%-30so=%-2s%v", tStamp, r.RemoteAddr, r.Method, r.URL.Path, dst, o, err)
 			default:
-				log.Printf("%-20s%-20s%-10s%-30s%v", r.Header.Get("Date"), r.RemoteAddr, r.Method, r.URL.Path, err)
+				log.Printf("%-21s%-25s%-10s%-30s%v", tStamp, r.RemoteAddr, r.Method, r.URL.Path, err)
 			}
 		},
 	}
