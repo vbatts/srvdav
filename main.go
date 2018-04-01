@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/abbot/go-http-auth"
+	caldav "github.com/samedi/caldav-go"
 	"golang.org/x/net/webdav"
 )
 
@@ -19,6 +21,7 @@ var (
 	flCert     = flag.String("cert", "", "server SSL cert (both -cert and -key must be present to use SSL). See `go run $(go env GOROOT)/src/crypto/tls/generate_cert.go -h` to generate development cert/key")
 	flKey      = flag.String("key", "", "server SSL key")
 	flHtpasswd = flag.String("htpasswd", "", "htpasswd file for auth (must be present to use auth) See htpasswd(1) to create this file.")
+	flCalDav   = flag.String("caldav", "", "local path to store caldav data ('' means no caldav is served)")
 )
 
 func main() {
@@ -60,10 +63,19 @@ func main() {
 		authHandlerFunc := func(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 			h.ServeHTTP(w, &r.Request)
 		}
+		if *flCalDav != "" {
+			http.HandleFunc("/caldav", authenticator.Wrap(func(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+				caldav.RequestHandler(w, &r.Request)
+			}))
+		}
 		http.HandleFunc("/", authenticator.Wrap(authHandlerFunc))
 
 	} else {
 		log.Println("WARNING: connections are not authenticated. STRONGLY consider using -htpasswd.")
+		if *flCalDav != "" {
+			http.HandleFunc("/caldav", caldav.RequestHandler)
+		}
+
 		http.Handle("/", h)
 	}
 	addr := fmt.Sprintf(":%d", *flPort)
@@ -85,23 +97,23 @@ type passThroughFS struct {
 	root string
 }
 
-func (ptfs *passThroughFS) Mkdir(name string, perm os.FileMode) error {
+func (ptfs *passThroughFS) Mkdir(ctx context.Context, name string, perm os.FileMode) error {
 	// TODO(vbatts) check for escaping the root directory
 	return os.Mkdir(filepath.Join(ptfs.root, name), perm)
 }
-func (ptfs *passThroughFS) OpenFile(name string, flag int, perm os.FileMode) (webdav.File, error) {
+func (ptfs *passThroughFS) OpenFile(ctx context.Context, name string, flag int, perm os.FileMode) (webdav.File, error) {
 	// TODO(vbatts) check for escaping the root directory
 	return os.OpenFile(filepath.Join(ptfs.root, name), flag, perm)
 }
-func (ptfs *passThroughFS) RemoveAll(name string) error {
+func (ptfs *passThroughFS) RemoveAll(ctx context.Context, name string) error {
 	// TODO(vbatts) check for escaping the root directory
 	return os.RemoveAll(filepath.Join(ptfs.root, name))
 }
-func (ptfs *passThroughFS) Rename(oldName, newName string) error {
+func (ptfs *passThroughFS) Rename(ctx context.Context, oldName, newName string) error {
 	// TODO(vbatts) check for escaping the root directory
 	return os.Rename(filepath.Join(ptfs.root, oldName), filepath.Join(ptfs.root, newName))
 }
-func (ptfs *passThroughFS) Stat(name string) (os.FileInfo, error) {
+func (ptfs *passThroughFS) Stat(ctx context.Context, name string) (os.FileInfo, error) {
 	// TODO(vbatts) check for escaping the root directory
 	return os.Stat(filepath.Join(ptfs.root, name))
 }
