@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -85,23 +86,23 @@ type passThroughFS struct {
 	root string
 }
 
-func (ptfs *passThroughFS) Mkdir(name string, perm os.FileMode) error {
+func (ptfs *passThroughFS) Mkdir(ctx context.Context, name string, perm os.FileMode) error {
 	// TODO(vbatts) check for escaping the root directory
 	return os.Mkdir(filepath.Join(ptfs.root, name), perm)
 }
-func (ptfs *passThroughFS) OpenFile(name string, flag int, perm os.FileMode) (webdav.File, error) {
+func (ptfs *passThroughFS) OpenFile(ctx context.Context, name string, flag int, perm os.FileMode) (webdav.File, error) {
 	// TODO(vbatts) check for escaping the root directory
 	return os.OpenFile(filepath.Join(ptfs.root, name), flag, perm)
 }
-func (ptfs *passThroughFS) RemoveAll(name string) error {
+func (ptfs *passThroughFS) RemoveAll(ctx context.Context, name string) error {
 	// TODO(vbatts) check for escaping the root directory
 	return os.RemoveAll(filepath.Join(ptfs.root, name))
 }
-func (ptfs *passThroughFS) Rename(oldName, newName string) error {
+func (ptfs *passThroughFS) Rename(ctx context.Context, oldName, newName string) error {
 	// TODO(vbatts) check for escaping the root directory
 	return os.Rename(filepath.Join(ptfs.root, oldName), filepath.Join(ptfs.root, newName))
 }
-func (ptfs *passThroughFS) Stat(name string) (os.FileInfo, error) {
+func (ptfs *passThroughFS) Stat(ctx context.Context, name string) (os.FileInfo, error) {
 	// TODO(vbatts) check for escaping the root directory
 	return os.Stat(filepath.Join(ptfs.root, name))
 }
