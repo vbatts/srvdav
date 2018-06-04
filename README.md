@@ -5,7 +5,7 @@ dangerously simple webdav server for a local filesystem
 # Building
 
 ```bash
-go get github.com/vbatts/srvdav
+go get git.thisco.de/vbatts/srvdav
 ```
 
 # Basic use
